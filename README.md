@@ -2,8 +2,7 @@ WIP These need to be updated quite a bit
 
 # RHEL for Edge Demo
 This presents a demonstration of RHEL for Edge that includes:
-* Rootless and serverless container application
-* Automatic failover from one guest node to another
+* Serverless container application
 * Automatic restart of container application
 * Automatic update to container application
 * Atomic upgrade of the underlying operating system with rollback on failure
@@ -20,9 +19,7 @@ is cloned or copied to your user's home directory on the RHEL host.
 You'll need to customize the settings in the `demo.conf` script to
 include your Red Hat Subscription Manager (RHSM) credentials to
 login to the [customer support portal](https://access.redhat.com)
-to pull updated content. Also, please review the setting for the
-virtual IP (VIP) address for keepalived for each of the two edge
-guests that you'll be running.
+to pull updated content.
 
 The first setup script will configure a network bridge so that the
 two edge guests will appear on the same LAN as the RHEL host. The

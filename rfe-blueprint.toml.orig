@@ -1,0 +1,66 @@
+name = "RFE"
+description = "RHEL for Edge"
+version = "0.0.1"
+modules = []
+groups = []
+
+[[packages]]
+name = "container-tools"
+version = "*"
+
+[[packages]]
+name = "jq"
+version = "*"
+
+# [[containers]]
+# source = "${HOSTIP}:5000/httpd:prod"
+# tls-verify = false
+
+[customizations.firewall]
+ports = ["8080:tcp"]
+
+[[customizations.user]]
+name = "${EDGE_USER}"
+description = "Admin User"
+password = "${EDGE_PASS_HASH}"
+groups = ["wheel"]
+
+[[customizations.files]]
+path = "/etc/rpm-ostreed.conf"
+data = "[Daemon]\nAutomaticUpdatePolicy=stage"
+
+[[customizations.files]]
+path = "/etc/systemd/system/applyupdate.service"
+data = "[Unit]\nDescription=Apply Update Check\n\n[Service]\nType=oneshot\nExecStart=/bin/sh -c 'if [[ $(rpm-ostree status -v | grep \"Staged: yes\") ]]; then systemctl --message=\"Applying OTA update\" reboot; else logger \"Running latest available update\"; fi'"
+
+[[customizations.files]]
+path = "/etc/systemd/system/applyupdate.timer"
+data = "[Unit]\nDescription=Daily Update Reboot Check.\n\n[Timer]\n# activate every fifteen seconds\nOnBootSec=15\nOnUnitActiveSec=15\n\n#weekly example for Sunday at midnight\n#OnCalendar=Sun *-*-* 00:00:00\n\n[Install]\nWantedBy=multi-user.target"
+
+[[customizations.files]]
+path = "/etc/containers/registries.conf.d/003-local-registry.conf"
+data = "[[registry]]\nlocation = \"${HOSTIP}:5000\"\ninsecure = true"
+
+[[customizations.files]]
+path = "/etc/systemd/system/container-httpd.socket"
+data = "[Socket]\nListenStream=8080\n\n[Install]\nWantedBy=sockets.target"
+
+[[customizations.files]]
+path = "/etc/containers/systemd/container-httpd.container"
+data = "[Unit]\nDescription=Podman container-httpd.service\n\n[Container]\nImage=${HOSTIP}:5000/httpd:prod\nLabel=io.containers.autoupdate=registry\n\n[Service]\nRestart=on-failure"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/podman-auto-update.timer.d"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/podman-auto-update.timer.d/override.conf"
+data = "[Timer]\nOnCalendar=\nRandomizedDelaySec=0\nOnBootSec=15\nOnUnitActiveSec=15"
+
+[[customizations.files]]
+path = "/etc/greenboot/check/required.d/01_check_upgrade.sh"
+mode = "0755"
+data = "#!/bin/bash\n\n#\n# This test fails if the current commit identifier is different\n# than the original commit\n#\n\nif [ ! -f /etc/greenboot/orig.txt ]\nthen\nrpm-ostree status -b --jsonpath ..checksum | jq .[0] -r > /etc/greenboot/orig.txt\nfi\n\nrpm-ostree status -b --jsonpath ..checksum | jq .[0] -r > /etc/greenboot/current.txt\n\ndiff -s /etc/greenboot/orig.txt /etc/greenboot/current.txt"
+
+[customizations.services]
+enabled = ["sshd","rpm-ostreed-automatic.timer","applyupdate.timer","podman-auto-update.timer","container-httpd.socket"]
