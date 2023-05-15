@@ -1,4 +1,4 @@
-WIP These need to be updated quite a bit
+WIP These need to be updated quite a bit for the latest RHEL 9.2 release
 
 # RHEL for Edge Demo
 This presents a demonstration of RHEL for Edge that includes:
