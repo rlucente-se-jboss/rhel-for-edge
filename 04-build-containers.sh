@@ -7,7 +7,7 @@
 #
 # Create containerized httpd application version 1
 #
-CTR_ID=$(buildah from registry.access.redhat.com/ubi9/ubi:latest)
+CTR_ID=$(buildah from registry.access.redhat.com/ubi${EDGE_VER}/ubi:latest)
 buildah run $CTR_ID -- dnf -y install httpd
 buildah run $CTR_ID -- sed -i "s/Listen 80/Listen 127.0.0.1:8080/g" /etc/httpd/conf/httpd.conf
 cat <<'EOF1' > index.html
