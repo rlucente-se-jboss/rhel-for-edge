@@ -7,7 +7,9 @@
 #
 # Install the container-tools
 #
-dnf -y install container-tools
+grep VERSION_ID /etc/os-release | grep -q '9\.' && \
+    dnf -y install container-tools || \
+    dnf -y module install container-tools
 
 #
 # Setup for a local insecure registry
