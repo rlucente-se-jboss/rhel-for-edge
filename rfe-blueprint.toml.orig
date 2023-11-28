@@ -1,0 +1,91 @@
+name = "RFE"
+description = "RHEL for Edge"
+version = "0.0.1"
+modules = []
+groups = []
+
+[[packages]]
+name = "container-tools"
+version = "*"
+
+[[packages]]
+name = "jq"
+version = "*"
+
+# [[containers]]
+# source = "${HOSTIP}:5000/httpd:prod"
+# tls-verify = false
+
+[customizations.firewall]
+ports = ["8080:tcp"]
+
+[[customizations.files]]
+path = "/etc/rpm-ostreed.conf"
+data = """
+[Daemon]
+AutomaticUpdatePolicy=stage
+"""
+
+[[customizations.files]]
+path = "/etc/ostree/remotes.d/edge.conf"
+data = """
+[remote "edge"]
+url=http://${HOSTIP}:8000/repo/
+gpg-verify=false
+"""
+
+[[customizations.files]]
+path = "/etc/containers/registries.conf.d/003-local-registry.conf"
+data = """
+[[registry]]
+location = "${HOSTIP}:5000"
+insecure = true
+"""
+
+[[customizations.files]]
+path = "/etc/systemd/system/container-httpd.socket"
+data = """
+[Socket]
+ListenStream=8080
+
+[Install]
+WantedBy=sockets.target
+"""
+
+[[customizations.files]]
+path = "/etc/containers/systemd/container-httpd.container"
+data = """
+[Unit]
+Description=Podman container-httpd.service
+
+[Container]
+Image=${HOSTIP}:5000/httpd:prod
+Label=io.containers.autoupdate=registry
+
+[Service]
+Restart=on-failure
+"""
+
+[[customizations.files]]
+path = "/etc/greenboot/check/required.d/01_check_upgrade.sh"
+mode = "0755"
+data = """
+#!/bin/bash
+
+#
+# This test fails if the current commit identifier is different
+# than the original commit
+#
+
+if [ ! -f /etc/greenboot/orig.txt ]
+then
+  rpm-ostree status -b --jsonpath ..checksum | jq .[0] -r > /etc/greenboot/orig.txt
+fi
+
+rpm-ostree status -b --jsonpath ..checksum | jq .[0] -r > /etc/greenboot/current.txt
+
+diff -s /etc/greenboot/orig.txt /etc/greenboot/current.txt
+"""
+
+[customizations.services]
+enabled = ["sshd","container-httpd.socket"]

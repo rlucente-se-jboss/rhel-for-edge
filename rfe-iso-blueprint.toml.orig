@@ -1,0 +1,12 @@
+name = "RFE-ISO"
+description = "RHEL for Edge ISO"
+version = "0.0.1"
+modules = []
+groups = []
+packages = []
+
+[[customizations.user]]
+name = "${EDGE_USER}"
+description = "Admin User"
+password = "${EDGE_PASS_HASH}"
+groups = ["wheel"]
