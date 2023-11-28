@@ -27,22 +27,30 @@ insecure = true
 EOF1
 
 #
-# Create systemd unit files for registry service
+# Create systemd quadlet for registry service
 #
-CTR_ID=$(podman run --privileged -d --name registry -p 5000:5000 -v /var/lib/registry:/var/lib/registry:Z --restart=always docker.io/library/registry:2)
-podman generate systemd --new --files --name $CTR_ID
+cat > /etc/containers/systemd/registry.container << EOF1
+[Unit]
+Description=Simple Container Registry Service
+Requires=network-online.target
 
-#
-# Clean up running containers
-#
-podman stop --all
-podman rm -f --all
+[Container]
+Image=docker.io/library/registry:2
+ContainerName=registry
+PublishPort=5000:5000
+Volume=/var/lib/registry:/var/lib/registry:Z
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target default.target
+EOF1
 
 #
 # Enable registry service
 #
-cp container-registry.service /etc/systemd/system
-restorecon -vFr /etc/systemd/system
+restorecon -vFr /etc/containers/systemd
 systemctl daemon-reload
-systemctl enable --now container-registry.service
+systemctl start registry
 
